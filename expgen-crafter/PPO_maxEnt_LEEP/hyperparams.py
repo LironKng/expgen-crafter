@@ -15,6 +15,8 @@ gamma = {
     'coinrun': 0.99,
     'heist': 0.5,
     'caveflyer': 0.9,
+    'crafter': 0.9,
+
 }
 
 num_agree = {
@@ -25,6 +27,7 @@ num_agree = {
     'bigfish': 8,
     'dodgeball': 2,
     'maze': 6,
+    'crafter': 6,
     'leaper': 1,
     'fruitbot': 1,
     'bossfight': 1,

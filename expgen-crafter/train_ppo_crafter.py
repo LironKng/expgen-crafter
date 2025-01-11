@@ -89,21 +89,6 @@ def main():
     test_env = VecPyTorch(test_env, 'cuda')
     test_env = ScaledFloatFrame(test_env)
 
-    # ############### Added Code Here ################### #
-    """
-    # Add the VideoRecorderProcess wrapper
-    recording_dir_test = os.path.join(logdir, 'crafter_videos/test')
-    os.makedirs(recording_dir_test, exist_ok=True)
-
-    test_env = VideoRecorderProcess(
-        env=test_env,
-        directory=recording_dir_test,
-        info_key="rgb",
-        prefix="test",
-        fps=30,
-        render=True
-    )
-    """
     #######################################################
 
     """

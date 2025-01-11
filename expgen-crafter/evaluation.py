@@ -455,10 +455,10 @@ def evaluate_procgen_ensemble(actor_critic, actor_critic_1, actor_critic_2, acto
     done_batch = np.array(done_batch)
     return rew_batch, done_batch
 
-def evaluate_procgen_maxEnt_avepool_original_L2(actor_critic, eval_envs_dic, eval_envs_dic_full_obs, env_name,
+def evaluate_procgen_maxEnt_avepool_original_L2(actor_critic, eval_envs_dic, env_name,
                                              device, steps, logger, num_buffer, kernel_size=3, stride=3, deterministic=True, p_norm=2, neighbor_size=1):
     eval_envs = eval_envs_dic[env_name]
-    eval_envs_full_obs = eval_envs_dic_full_obs[env_name]
+    #eval_envs_full_obs = eval_envs_dic_full_obs[env_name]
     rew_batch = []
     int_rew_batch = []
     done_batch = []
@@ -477,7 +477,7 @@ def evaluate_procgen_maxEnt_avepool_original_L2(actor_critic, eval_envs_dic, eva
 
             # Observe reward and next obs
             next_obs, reward, done, infos = eval_envs.step(action.squeeze().cpu().numpy())
-            next_obs_full, _, _, _ = eval_envs_full_obs.step(action.squeeze().cpu().numpy())
+            #next_obs_full, _, _, _ = eval_envs_full_obs.step(action.squeeze().cpu().numpy())
 
             logger.eval_masks[env_name] = torch.tensor(
                 [[0.0] if done_ else [1.0] for done_ in done],
@@ -485,39 +485,39 @@ def evaluate_procgen_maxEnt_avepool_original_L2(actor_critic, eval_envs_dic, eva
                 device=device)
             logger.eval_recurrent_hidden_states[env_name] = eval_recurrent_hidden_states
 
-            if t == 0:
-                prev_seeds = np.zeros_like(reward)
-                for i in range(len(done)):
-                    prev_seeds[i] = infos[i]['prev_level_seed']
-                seed_batch.append(prev_seeds)
+            # if t == 0:
+            #     prev_seeds = np.zeros_like(reward)
+            #     for i in range(len(done)):
+            #         prev_seeds[i] = infos[i]['prev_level_seed']
+            #     seed_batch.append(prev_seeds)
 
-            seeds = np.zeros_like(reward)
+            # seeds = np.zeros_like(reward)
             int_reward = np.zeros_like(reward)
-            next_obs_ds = down_sample_avg(next_obs_full)
+            #next_obs_ds = down_sample_avg(next_obs_full)
             for i in range(len(done)):
-                seeds[i] = infos[i]['level_seed']
+                # seeds[i] = infos[i]['level_seed']
                 if done[i] == 1 :
-                    logger.obs_vec_ds[env_name][i] = []
+                    logger.obs_vec[env_name][i] = []
                 else:
-                    env_steps = len(logger.obs_vec_ds[env_name][i])
+                    env_steps = len(logger.obs_vec[env_name][i])
                     if env_steps > 0:
                         if env_steps > num_buffer:
-                            old_obs = torch.stack(logger.obs_vec_ds[env_name][i][env_steps-num_buffer:])
+                            old_obs = torch.stack(logger.obs_vec[env_name][i][env_steps-num_buffer:])
                         else:
-                            old_obs = torch.stack(logger.obs_vec_ds[env_name][i])
-                        neighbor_size_i = int(min(neighbor_size, len(logger.obs_vec_ds[env_name][i])) -1)
-                        int_reward[i]  = (old_obs - next_obs_ds[i].unsqueeze(0)).flatten(start_dim=1).norm(p=p_norm, dim=1).sort().values[neighbor_size_i]
+                            old_obs = torch.stack(logger.obs_vec[env_name][i])
+                        neighbor_size_i = int(min(neighbor_size, len(logger.obs_vec[env_name][i])) -1)
+                        int_reward[i]  = (old_obs - next_obs[i].unsqueeze(0)).flatten(start_dim=1).norm(p=p_norm, dim=1).sort().values[neighbor_size_i]
 
-                logger.obs_vec_ds[env_name][i].append(next_obs_ds[i])
+                logger.obs_vec[env_name][i].append(next_obs[i])
 
 
             rew_batch.append(reward)
             int_rew_batch.append(int_reward)
             done_batch.append(done)
-            seed_batch.append(seeds)
+            #seed_batch.append(seeds)
 
             logger.obs[env_name] = next_obs
-            logger.obs_full[env_name] = next_obs_full
+            #logger.obs_full[env_name] = next_obs_full
             logger.last_action[env_name] = action
 
     rew_batch = np.array(rew_batch)
