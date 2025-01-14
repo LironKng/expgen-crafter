@@ -7,8 +7,9 @@ from torch import nn
 
 
 def evaluate_procgen(actor_critic, eval_envs, env_name,
-                     device, steps, logger, deterministic=True):
-    rew_batch = []
+                     device, steps, logger, num_buffer, deterministic=True, p_norm=2, neighbor_size=1):
+    ext_rew_batch = []
+    int_rew_batch = []
     done_batch = []
     achievements = []
     successes = []
@@ -22,17 +23,19 @@ def evaluate_procgen(actor_critic, eval_envs, env_name,
                 deterministic=deterministic)
 
             # Observe reward and next obs
-            next_obs, reward, done, infos = eval_envs.step(action.squeeze().cpu().numpy())
+            next_obs, ext_reward, done, infos = eval_envs.step(action.squeeze().cpu().numpy())
             logger.eval_masks[env_name] = torch.tensor(
                 [[0.0] if done_ else [1.0] for done_ in done],
                 dtype=torch.float32,
                 device=device)
             logger.eval_recurrent_hidden_states[env_name] = eval_recurrent_hidden_states
+            int_reward = np.zeros_like(ext_reward)
 
             if 'env_reward' in infos[0]:
-                rew_batch.append([info['env_reward'] for info in infos])
+                ext_rew_batch.append([info['env_reward'] for info in infos])
             else:
-                rew_batch.append(reward)
+                ext_rew_batch.append(ext_reward)
+
             done_batch.append(done)
             logger.obs[env_name] = next_obs
             
@@ -46,13 +49,24 @@ def evaluate_procgen(actor_critic, eval_envs, env_name,
                     # Successes
                     success = (achievements[-1] > 0) # success is vector where: true if achievement[task]>0 else false
                     successes.append(success)
+                else:
+                    # Intrinsic reward calculation
+                    env_steps = len(logger.obs_vec[env_name][i])
+                    if env_steps > 0:
+                        if env_steps > num_buffer:
+                            old_obs = torch.stack(logger.obs_vec[env_name][i][env_steps-num_buffer:])
+                        else:
+                            old_obs = torch.stack(logger.obs_vec[env_name][i])
+                        neighbor_size_i = int(min(neighbor_size, len(logger.obs_vec[env_name][i])) -1)
+                        int_reward[i]  = (old_obs - next_obs[i].unsqueeze(0)).flatten(start_dim=1).norm(p=p_norm, dim=1).sort().values[neighbor_size_i]
+            int_rew_batch.append(int_reward)
 
-
-    rew_batch = np.array(rew_batch)
+    ext_rew_batch = np.array(ext_rew_batch)
+    int_rew_batch = np.array(int_rew_batch)
     done_batch = np.array(done_batch)
     achievements = np.stack(achievements, axis=0).astype(np.int32)
     successes = np.stack(successes, axis=0).astype(np.int32)
-    return rew_batch, done_batch, successes
+    return ext_rew_batch, int_rew_batch, done_batch, successes
 
 
 def maxEnt_oracle(obs_all, action):
