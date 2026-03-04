@@ -1,0 +1,31 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Environment
+.env
+.venv
+env/
+venv/
+
+# Logs and outputs
+logs/
+wandb/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Artifacts
+=*
